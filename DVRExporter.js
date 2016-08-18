@@ -3,13 +3,17 @@ var DVRExporter = function() {
     var generated = "";
     var session = {
       interactions: [],
-      name: options.file.name.slice(0, -5)
+      name: options.file ? options.file.name.replace(/\.[^\.]+$/, "")
+                         : "Paw Session"
     };
 
     // iterate requests (`Request` objects)
     for (var i in requests) {
       var request = requests[i];
       var response = request.getLastExchange();
+      if (!response) {
+        continue;
+      }
 
       var interaction = {};
       interaction.recorded_at = Date.parse(response.date) / 1000;
@@ -24,7 +28,12 @@ var DVRExporter = function() {
       interaction.response.url = response.requestUrl;
       interaction.response.status = response.responseStatusCode;
       interaction.response.headers = response.responseHeaders;
-      interaction.response.body = JSON.parse(response.responseBody);
+      try {
+        // parse response JSON body in a try/catch in case it's not a JSON
+        interaction.response.body = JSON.parse(response.responseBody);
+      } catch (e) {
+        continue;
+      }
 
       session.interactions.push(interaction);
     }
